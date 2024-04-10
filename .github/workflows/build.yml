@@ -1,0 +1,33 @@
+on: push
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Development Build - ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@master
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Rust Dependency Cache
+        uses: Swatinem/rust-cache@master
+
+      - name: Build
+        uses: clechasseur/rs-cargo@v2
+        with:
+          command: build
+          args: --release
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: Dev release ${{ github.sha }} - ${{ matrix.platform }}
+          path: |
+            target/release/bmap-server
