@@ -20,9 +20,6 @@ $ ./bmap-server /path/to/bluemap/data
 
 You can also use the `--help` flag to get a list of all available options:
 
-<details>
-<summary>Click to expand</summary>
-
 ```
 $ bmap-server --help
 Usage: bmap-server [OPTIONS] <BLUEMAP_DIR>
@@ -40,8 +37,6 @@ Options:
   -h, --help                         Print help
   -V, --version                      Print version
 ```
-
-</details>
 
 ## Building
 
