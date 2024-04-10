@@ -9,6 +9,7 @@ use axum::{
     routing::get,
     Router,
 };
+use axum_server::tls_rustls::RustlsConfig;
 use clap::Parser;
 use tower_http::{
     services::ServeDir,
@@ -43,6 +44,15 @@ struct Args {
     /// Bluemap's Live Server port
     #[arg(long, default_value = "8100")]
     bluemap_port: Option<u16>,
+
+    /// TLS certificate file
+    /// If not provided, the server will be run in plaintext mode
+    #[arg(long)]
+    tls_cert: Option<String>,
+    /// TLS key file
+    /// If not provided, the server will be run in plaintext mode
+    #[arg(long)]
+    tls_key: Option<String>,
 }
 
 #[tokio::main]
@@ -95,13 +105,26 @@ async fn main() {
                 .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
         );
 
+    let use_tls = args.tls_cert.is_some() && args.tls_key.is_some();
+    info!("Using TLS: {}", use_tls);
+
     debug!("Trying to bind to port {}", args.port.unwrap());
     let listener = tokio::net::TcpListener::bind((args.host.unwrap(), args.port.unwrap()))
         .await
         .unwrap();
     info!("Listening on http://{}", listener.local_addr().unwrap());
 
-    axum::serve(listener, app).await.unwrap();
+    if use_tls {
+        let tls_config = RustlsConfig::from_pem_file(args.tls_cert.unwrap(), args.tls_key.unwrap())
+            .await
+            .unwrap();
+        axum_server::from_tcp_rustls(listener.into_std().unwrap(), tls_config)
+            .serve(app.into_make_service())
+            .await
+            .unwrap();
+    } else {
+        axum::serve(listener, app).await.unwrap();
+    }
 }
 
 #[instrument]
