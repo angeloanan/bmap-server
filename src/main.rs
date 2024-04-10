@@ -10,8 +10,11 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use tower_http::services::ServeDir;
-use tracing::{debug, info, instrument, trace};
+use tower_http::{
+    services::ServeDir,
+    trace::{self, TraceLayer},
+};
+use tracing::{debug, info, instrument, trace, Level};
 
 use hyper_util::{client::legacy::connect::HttpConnector, rt::TokioExecutor};
 
@@ -86,7 +89,11 @@ async fn main() {
     let app = Router::new()
         .route("/maps/:world_name/live", get(proxy_live_data))
         .with_state(state)
-        .nest_service("/", serve_directory);
+        .nest_service("/", serve_directory)
+        .layer(
+            TraceLayer::new_for_http()
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+        );
 
     debug!("Trying to bind to port {}", args.port.unwrap());
     let listener = tokio::net::TcpListener::bind((args.host.unwrap(), args.port.unwrap()))
