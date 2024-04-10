@@ -28,6 +28,6 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@master
         with:
-          name: Dev release ${{ github.sha }} - ${{ matrix.platform }}
+          name: Development ${{ github.sha }} - ${{ matrix.platform }}
           path: |
             target/release/bmap-server

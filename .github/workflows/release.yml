@@ -1,0 +1,35 @@
+on:
+  push:
+    tags:
+      - "*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Release Build - ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@master
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Rust Dependency Cache
+        uses: Swatinem/rust-cache@master
+
+      - name: Build
+        uses: clechasseur/rs-cargo@v2
+        with:
+          command: build
+          args: --release
+
+      - name: Create a Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            target/release/bmap-server
