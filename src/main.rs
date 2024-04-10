@@ -45,12 +45,10 @@ struct Args {
     #[arg(long, default_value = "8100")]
     bluemap_port: Option<u16>,
 
-    /// TLS certificate file
-    /// If not provided, the server will be run in plaintext mode
+    /// TLS certificate file - If not provided, server will run without TLS
     #[arg(long)]
     tls_cert: Option<String>,
-    /// TLS key file
-    /// If not provided, the server will be run in plaintext mode
+    /// TLS key file - If not provided, server will run without TLS
     #[arg(long)]
     tls_key: Option<String>,
 }
