@@ -1,11 +1,14 @@
-on: push
+on:
+  push:
+    branches:
+      - "*"
 
 env:
   CARGO_TERM_COLOR: always
 
 name: Development Build
 jobs:
-  release:
+  build:
     name: ${{ matrix.target }}
     strategy:
       fail-fast: false
@@ -44,6 +47,6 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@master
         with:
-          name: ${{ matrix.target }}
+          name: bmap-server-${{ matrix.target }}
           path: |
-            target/release/bmap-server
+            target/release/bmap-server*
