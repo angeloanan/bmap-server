@@ -1,11 +1,18 @@
+#![deny(clippy::all)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::nursery)]
+#![warn(clippy::cargo)]
+#![warn(clippy::perf)]
+#![warn(clippy::complexity)]
+#![warn(clippy::style)]
 #![feature(absolute_path)]
 use std::{net::IpAddr, path::PathBuf};
 
 use axum::{
     body::Body,
     extract::{Request, State},
-    http::{StatusCode, Uri},
-    response::{IntoResponse, Response},
+    http::{HeaderMap, HeaderName, HeaderValue, Response, StatusCode},
+    response::IntoResponse,
     routing::get,
     Router,
 };
@@ -15,13 +22,11 @@ use tower_http::{
     services::ServeDir,
     trace::{self, TraceLayer},
 };
-use tracing::{debug, info, instrument, trace, Level};
-
-use hyper_util::{client::legacy::connect::HttpConnector, rt::TokioExecutor};
+use tracing::{debug, error, info, instrument, trace, Level};
 
 #[derive(Clone, Debug)]
 struct AppState {
-    client: hyper_util::client::legacy::Client<HttpConnector, Body>,
+    client: reqwest::Client,
     bluemap_origin: &'static str,
 }
 
@@ -84,8 +89,10 @@ async fn main() {
 
     trace!("Building reverse proxy client");
     let state = AppState {
-        client: hyper_util::client::legacy::Client::<(), ()>::builder(TokioExecutor::new())
-            .build(HttpConnector::new()),
+        client: reqwest::ClientBuilder::new()
+            .user_agent("Mozilla/5.0 (compatible; bmap-server/1.0.0; +https://github.com/angeloanan/bmap-server)")
+            .build()
+            .unwrap(),
         bluemap_origin: format!(
             "{}:{}",
             args.bluemap_host.unwrap(),
@@ -128,22 +135,41 @@ async fn main() {
 #[instrument]
 async fn proxy_live_data(
     State(app_state): State<AppState>,
-    mut req: Request,
-) -> Result<Response, StatusCode> {
+    req: Request,
+) -> axum::response::Response {
     let complete_path = req
         .uri()
         .path_and_query()
-        .map(|v| v.as_str())
-        .unwrap_or(req.uri().path());
+        .map_or(req.uri().path(), |v| v.as_str());
     trace!("Proxying request of {complete_path}");
 
-    let bmap_uri = format!("http://{}{complete_path}", app_state.bluemap_origin);
-    *req.uri_mut() = Uri::try_from(bmap_uri).unwrap();
-
-    Ok(app_state
+    let data = match app_state
         .client
-        .request(req)
+        .get(format!(
+            "http://{}{complete_path}",
+            app_state.bluemap_origin
+        ))
+        .send()
         .await
-        .map_err(|_| StatusCode::BAD_REQUEST)?
-        .into_response())
+    {
+        Ok(data) => data,
+        Err(e) => {
+            error!("Error while fetching data from Bluemap: {}", e);
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+
+    let response_builder = Response::builder().status(data.status());
+    // Here the mapping of headers is required due to reqwest and axum differ on the http crate versions
+    let mut headers = HeaderMap::with_capacity(data.headers().len());
+    headers.extend(data.headers().into_iter().map(|(name, value)| {
+        let name = HeaderName::from_bytes(name.as_ref()).unwrap();
+        let value = HeaderValue::from_bytes(value.as_ref()).unwrap();
+        (name, value)
+    }));
+
+    response_builder
+        .body(Body::from_stream(data.bytes_stream()))
+        // This unwrap is fine because the body is empty here
+        .unwrap()
 }
