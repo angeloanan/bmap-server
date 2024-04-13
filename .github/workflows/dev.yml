@@ -3,9 +3,10 @@ on: push
 env:
   CARGO_TERM_COLOR: always
 
+name: Development Build
 jobs:
   release:
-    name: Build for ${{ matrix.target }}
+    name: ${{ matrix.target }}
     strategy:
       fail-fast: false
       matrix:
