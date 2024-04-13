@@ -95,7 +95,7 @@ async fn main() {
     };
 
     let app = Router::new()
-        .route("/maps/:world_name/live", get(proxy_live_data))
+        .route("/maps/:world_name/live/*any", get(proxy_live_data))
         .with_state(state)
         .nest_service("/", serve_directory)
         .layer(
