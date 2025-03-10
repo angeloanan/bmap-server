@@ -114,7 +114,7 @@ async fn main() {
     let app = Router::new()
         .route("/maps/{world_name}/live/{*any}", get(proxy_live_data))
         .with_state(state)
-        .nest_service("/", serve_directory)
+        .fallback_service(serve_directory)
         .layer(
             TraceLayer::new_for_http()
                 .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
