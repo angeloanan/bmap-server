@@ -5,7 +5,6 @@
 #![warn(clippy::perf)]
 #![warn(clippy::complexity)]
 #![warn(clippy::style)]
-#![feature(absolute_path)]
 use std::{net::IpAddr, path::PathBuf};
 
 use axum::{
@@ -74,9 +73,12 @@ async fn main() {
     );
     trace!("BLUEMAP_PATH is a valid directory!");
 
+    // Traverse to the web directory - the base directory of what we're serving
     let mut web_path = path.clone();
     web_path.push("web");
 
+    // Forms the path to the index file for verification purposes only
+    // Internally, a BLUEMAP_PATH is valid if it contains `web/index.html` in the folder
     let mut index_file = web_path.clone();
     index_file.push("index.html");
     assert!(
@@ -85,12 +87,19 @@ async fn main() {
     );
 
     info!("Using Bluemap data directory: {}", path.display());
-    let serve_directory = ServeDir::new(web_path).precompressed_gzip();
+    let serve_directory = ServeDir::new(web_path)
+        .precompressed_gzip()
+        .precompressed_zstd();
 
     trace!("Building reverse proxy client");
     let state = AppState {
         client: reqwest::ClientBuilder::new()
-            .user_agent("Mozilla/5.0 (compatible; bmap-server/1.0.0; +https://github.com/angeloanan/bmap-server)")
+            .user_agent(concat!(
+                "Mozilla/5.0 (compatible; {}/{}; +{})",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION"),
+                env!("CARGO_PKG_HOMEPAGE")
+            ))
             .build()
             .unwrap(),
         bluemap_origin: format!(
