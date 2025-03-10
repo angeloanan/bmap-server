@@ -12,14 +12,14 @@ categories = ["web-programming::http-server"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.7.5", features = ["ws", "http2"] }
-axum-server = { version = "0.6.0", features = ["rustls", "tls-rustls"] }
+axum = { version = "0.8.1", features = ["ws", "http2"] }
+axum-server = { version = "0.7.1", features = ["rustls", "tls-rustls"] }
 clap = { version = "4.5.4", features = ["derive"] }
 dotenvy = "0.15.7"
 reqwest = { version = "0.12.3", features = ["stream"] }
 rustls = "0.23.4"
 tokio = { version = "1.37.0", features = ["full"] }
-tower-http = { version = "0.5.2", features = ["fs", "trace", "tracing"] }
+tower-http = { version = "0.6.2", features = ["fs", "trace", "tracing"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 
