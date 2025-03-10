@@ -8,12 +8,12 @@
 use std::{net::IpAddr, path::PathBuf};
 
 use axum::{
+    Router,
     body::Body,
     extract::{Request, State},
     http::{HeaderMap, HeaderName, HeaderValue, Response, StatusCode},
     response::IntoResponse,
     routing::get,
-    Router,
 };
 use axum_server::tls_rustls::RustlsConfig;
 use clap::Parser;
@@ -21,7 +21,7 @@ use tower_http::{
     services::ServeDir,
     trace::{self, TraceLayer},
 };
-use tracing::{debug, error, info, instrument, trace, Level};
+use tracing::{Level, debug, error, info, instrument, trace};
 
 #[derive(Clone, Debug)]
 struct AppState {
@@ -83,7 +83,8 @@ async fn main() {
     index_file.push("index.html");
     assert!(
         index_file.is_file(),
-        "Provided BLUEMAP_PATH does not look like a valid bluemap data directory. Did you point it to the root directory? Provided path: {}", path.display()
+        "Provided BLUEMAP_PATH does not look like a valid bluemap data directory. Did you point it to the root directory? Provided path: {}",
+        path.display()
     );
 
     info!("Using Bluemap data directory: {}", path.display());
@@ -111,7 +112,7 @@ async fn main() {
     };
 
     let app = Router::new()
-        .route("/maps/:world_name/live/*any", get(proxy_live_data))
+        .route("/maps/{world_name}/live/{*any}", get(proxy_live_data))
         .with_state(state)
         .nest_service("/", serve_directory)
         .layer(
